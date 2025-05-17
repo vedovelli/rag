@@ -15,19 +15,43 @@ const urls = [
   "https://www.rocketseat.com.br/blog/artigos/post/profissional-360-acelerar-desenvolvimento",
 ];
 
-urls.forEach(async (url) => {
-  const fileName = lib.extractFileNameFromUrl(url);
-  const markdownContents = lib.readFile(fileName);
-  const chunks = await lib.extractChunks(markdownContents);
-  const embeddings = await lib.getEmbeddings(chunks);
+const title = "Validação de dados descomplicada";
 
-  embeddings.forEach(async (item) => {
-    await lib.turso.execute(
-      "INSERT INTO content (content, url, embedding) VALUES (?,?,?)",
-      [item.chunk, url, JSON.stringify(item.embeddings)]
-    );
-  });
-});
+const embeddings = await lib.getEmbeddings([title]);
+
+const sql = `SELECT 
+  c.id,
+  c.url,
+  (1 - vector_distance_cos(c.embedding, ?)) as similarity_score
+FROM content c
+WHERE similarity_score > 0.4
+ORDER BY similarity_score DESC
+LIMIT 3`;
+
+const result = await lib.turso.execute(sql, [
+  JSON.stringify(embeddings[0].embeddings),
+]);
+
+console.log(
+  result.rows.map((row) => ({
+    url: row.url,
+    similarity_score: `${Math.ceil(row.similarity_score * 100)}%`,
+  }))
+);
+
+// urls.forEach(async (url) => {
+//   const fileName = lib.extractFileNameFromUrl(url);
+//   const markdownContents = lib.readFile(fileName);
+//   const chunks = await lib.extractChunks(markdownContents);
+//   const embeddings = await lib.getEmbeddings(chunks);
+
+//   embeddings.forEach(async (item) => {
+//     await lib.turso.execute(
+//       "INSERT INTO content (content, url, embedding) VALUES (?,?,?)",
+//       [item.chunk, url, JSON.stringify(item.embeddings)]
+//     );
+//   });
+// });
 
 function getContents(urls) {
   urls.forEach(async (url) => {
