@@ -1,0 +1,19 @@
+{
+  "name": "rag",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@mendable/firecrawl-js": "^1.24.0",
+    "dotenv": "^16.5.0",
+    "ioredis": "^5.6.1",
+    "langchain": "^0.3.26"
+  }
+}
