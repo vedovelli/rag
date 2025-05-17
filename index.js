@@ -2,12 +2,6 @@ import "dotenv/config";
 
 import * as lib from "./lib.js";
 
-import FirecrawlApp from "@mendable/firecrawl-js";
-
-const firecrawl = new FirecrawlApp({
-  apiKey: process.env.FIRECRAWL_API_KEY,
-});
-
 const urls = [
   "https://www.rocketseat.com.br/blog/artigos/post/componentes-reutilizaveis-react-2025",
   "https://www.rocketseat.com.br/blog/artigos/post/ingles-lideranca-tecnica-global",
@@ -21,13 +15,29 @@ const urls = [
   "https://www.rocketseat.com.br/blog/artigos/post/profissional-360-acelerar-desenvolvimento",
 ];
 
-// urls.forEach(async (url) => {
-//   const result = await firecrawl.scrapeUrl(url, {
-//     formats: ["markdown"],
-//   });
+urls.forEach(async (url) => {
+  const fileName = lib.extractFileNameFromUrl(url);
+  const markdownContents = lib.readFile(fileName);
+  const chunks = await lib.extractChunks(markdownContents);
+  const embeddings = await lib.getEmbeddings(chunks);
 
-//   if (result.success) {
-//     const fileName = lib.extractFileNameFromUrl(url);
-//     lib.saveFile(fileName, result.markdown ?? "");
-//   }
-// });
+  embeddings.forEach(async (item) => {
+    await lib.turso.execute(
+      "INSERT INTO content (content, url, embedding) VALUES (?,?,?)",
+      [item.chunk, url, JSON.stringify(item.embeddings)]
+    );
+  });
+});
+
+function getContents(urls) {
+  urls.forEach(async (url) => {
+    const result = await lib.firecrawl.scrapeUrl(url, {
+      formats: ["markdown"],
+    });
+
+    if (result.success) {
+      const fileName = lib.extractFileNameFromUrl(url);
+      lib.saveFile(fileName, result.markdown ?? "");
+    }
+  });
+}
